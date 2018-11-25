@@ -266,7 +266,6 @@ def stressStrainToForceDisplacement(dsigma, depsilon, dims):
     Ux, Uy, Gx, Gy = depsilon[0]*dims[0], depsilon[1]*dims[1], 0.*dims[1], 0.*dims[0]   # G is shear deformation
 
     # create force vectors and displacement vectors
-    # df := [f1x, f1y, f2x, f2y, f3x, f3y, f4x, f4y]
     df = np.array([Sx-Fx, -Sy+Fy, Sx+Fx, Sy+Fy, -Sx+Fx, Sy-Fy, -Sx-Fx, -Sy-Fy ])/2.
 
     # du := [f1x, f1y, f2x, f2y, f3x, f3y, f4x, f4y]
@@ -277,10 +276,14 @@ def stressStrainToForceDisplacement(dsigma, depsilon, dims):
 # =---------------------------------------------------------------------------------------------------
 # Function: computeKfromNN
 # Description: Computes the stiffness matrix at a given stress-strain state, based on a NN model
+# Method is Hashash
 # inputs:
 # model - a Keras/Tensorflow neural network object
-# state - data array with 1 set of inputs, defining the state and increment
-# Normalised data!
+# state - data array with 1 set of inputs, defining the state and increment. Normalised data!
+# normparams - pandas dataframe with amount of columns equal to dataArr and 2 rows labeled max, min
+# keys_in - pandas keys object of ANN inputs
+# network_geometry - 2D list of [[nodes1, activation1], [nodes2, activation2], ...]
+# n_dim - independent loads in the model. Only in-plane loading: set to 3.
 # outputs:
 # K - the local material stiffness matrix
 # =---------------------------------------------------------------------------------------------------
@@ -360,11 +363,14 @@ def computeKfromNN(model, state, normparams, keys_in, network_geometry, n_dim):
 
 # =---------------------------------------------------------------------------------------------------
 # Function: computeKfromNN_2
-# Description: Computes the stiffness matrix at a given stress-strain state, based on a NN model
+# Description: Computes the stiffness matrix at a given stress-strain state, based on an ANN model
+# Method used to compute this matrix is to solve a linear system of equations.
 # inputs:
 # model - a Keras/Tensorflow neural network object
-# state - data array with 1 set of inputs, defining the state and increment
-# Non-normalised data!
+# state - data array with 1 set of inputs, defining the state and increment. non-normalised data!!
+# normalisationParams - pandas dataframe with amount of columns equal to dataArr and 2 rows labeled max, min
+# keys_in, keys_inc, keys_out - pandas key object of inputs, increments and outputs respectively
+# n_dim - independent loads in the model. Only in-plane loading: set to 3.
 # outputs:
 # K - the local material stiffness matrix
 # =---------------------------------------------------------------------------------------------------
@@ -397,7 +403,8 @@ def computeKfromNN_2(model, state, normparams, keys_in, keys_inc, keys_out, n_di
 # inputs:
 # model - a Keras/Tensorflow neural network object
 # state - data array with 1 set of inputs, defining the state and increment
-# layer_def - specification of the network activation functions
+# keys_in - specification of the network's input parameters
+# i_layer_out - number of the layer where output is desired
 # normalised data!
 # outputs:
 #
@@ -425,10 +432,12 @@ def networkOutputPartial(model, state, keys_in, i_layer_out):
 # network structure currently implemented: All layers relu, except final layer which is tanh
 # inputs:
 # fname - file name
+# matname - name of material in Abaqus
 # model - a Keras/Tensorflow neural network object
 # normalisationParams - pandas dataframe with amount of columns equal to dataArr and 2 rows labeled max, min
 # n_dim - the dimensionality of the problem. For example, if sigma_1, sigma_2 and sigma_12, then n_dim = 3
-# solver - either 'secant' (default), linear or 'hashash'. The latter option is based on the work of hashash (2004)
+# solver - either 'secant' (default), linear or 'hashash'. The last option is based on the work of hashash (2004)
+# ATTENTION: The linear function is currently not yet complete.
 # outputs:
 # D - the local material stiffness matrix
 # =------------------------------------------------------------------------------------------------------
